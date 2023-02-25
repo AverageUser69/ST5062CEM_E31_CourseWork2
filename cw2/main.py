@@ -1,3 +1,4 @@
+from enum import verify
 import tkinter as tk
 from tkinter import ttk
 import tkinter.messagebox as messagebox
@@ -5,7 +6,18 @@ import mysql.connector
 import re
 import hashlib
 import random
+import smtplib
+from email.mime.text import MIMEText
+import string
+from mysql.connector import Error
+from tkinter import Tk, ttk, scrolledtext, messagebox
+from tkinter import Canvas
+from tkinter import Scrollbar
 from tkinter import Toplevel
+
+
+from tkinter import ttk
+import mysql.connector
 
 # global current_user_id
 # --------------------------------------- Getting Input (sign_up_frame) --------------------------------------- #
@@ -15,6 +27,13 @@ from tkinter import Toplevel
 code = str(random.randint(100000, 999999))
 
 def submit_sign_up():
+    # # Access the values of the Entry widgets
+    # first_name = first_name_entry.get()
+    # last_name = last_name_entry.get()
+    # phone_number = phone_number_entry.get()
+    # email = email_entry.get()
+    # password = password_entry.get()
+    # confirm_password= confirm_password_entry.get()
 
 # --------------------------------------- testing inputs (sign_up_frame) --------------------------------------- #
     first_name = "hello"
@@ -79,7 +98,42 @@ def submit_sign_up():
     if result:
         messagebox.showerror("Error", "Email or Phone number already in use")
     else:
-        print("account created")
+        verify_email()
+
+    
+    ##############################################################################################################
+    ##############################################################################################################
+        print("printed after verify email")
+        print(code)
+        
+    ##
+        # Email details
+        to = email
+        subject = "Complete Your Email Verification"
+        body = f"""Dear Valued Customer,
+
+        We hope this message finds you well. Please take a moment to complete your email verification process by entering the following code: {code}.
+
+        Your email verification ensures that you can receive important updates and information from our services.
+
+        Thank you for your time and cooperation. If you have any questions or concerns, please do not hesitate to reach out to us.
+
+        Best Regards,
+        The Secure File Transfer Protocol Team"""
+
+        # Create message object
+        message = MIMEText(body)
+        message['to'] = to
+        message['subject'] = subject
+        message['From'] = "securefiletransferprotocle@proton.me"
+
+        # Send email
+        server = smtplib.SMTP("smtp.sendgrid.net", 587)
+        server.ehlo()
+        server.starttls()
+        server.login("apikey", "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")
+        server.sendmail("securefiletransferprotocle@proton.me", [to], message.as_string())
+        server.quit()
         print("##############################################################################################")
         print(code)
         print(first_name)
@@ -89,6 +143,64 @@ def submit_sign_up():
         print(password)
         print(confirm_password)
     return first_name,last_name,phone_number,email,password,confirm_password
+    
+# --------------------------------------- Inserting Data inside Database (sign_up_frame) --------------------------------------- #
+def verify_code_function(sign_up_values):
+    first_name, last_name, phone_number, email, password, confirm_password = sign_up_values
+    
+    print("======================================================================================")
+    print(code)
+    print(first_name)
+    print(last_name)
+    print(phone_number)
+    print(email)
+    print(password)
+    print(confirm_password)
+    
+    verify_code = verify_code_entry.get()
+    if verify_code == "":
+        print(code)
+        messagebox.showerror("Error","Verification code cannot be empty.")
+        return
+    if verify_code != code:
+        print(code)
+        messagebox.showerror("Error","Invalid Verification code.")
+        return
+    try:
+        mydb = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="",
+            database="securefile"
+        )
+        mycursor = mydb.cursor()
+        sql = "INSERT INTO userdata (first_name, last_name, email_address, phone_number, password) VALUES (%s, %s, %s, %s, %s)"
+        val = (first_name, last_name, email, phone_number, password)
+        mycursor.execute(sql, val)
+        mydb.commit()
+        mydb.close()
+        if messagebox.showinfo("Success", "Email Verified!\n Account Created Successfully.") == "ok":
+            log_in_after_verification()
+            print("==========changed==========")
+            first_name_entry.delete(0, "end")
+            last_name_entry.delete(0, "end")
+            phone_number_entry.delete(0, "end")
+            email_entry.delete(0, "end")
+            password_entry.delete(0, "end")
+            confirm_password_entry.delete(0, "end")
+    except Error as e:
+        print("Error while connecting to MySQL", e)
+        messagebox.showerror("Error", "Failed to create account. Please try again later.")
+
+
+
+            # first_name_entry.delete(0, "end")
+            # last_name_entry.delete(0, "end")
+            # phone_number_entry.delete(0, "end")
+            # email_entry.delete(0, "end")
+            # password_entry.delete(0, "end")
+            # confirm_password_entry.delete(0, "end")
+            # verify_email()
 
 # --------------------------------------- Testing Input In (sign_up_frame) --------------------------------------- #
     print("First Name:",first_name)
@@ -98,42 +210,6 @@ def submit_sign_up():
     print("Password:", password)
     print("Confirm Password:",confirm_password)
     
-# --------------------------------------- Getting Input (log_in_frame) --------------------------------------- #
-def validate_log_in_credentials():
-    
-    # log_email = log_email_entry.get()
-    # log_password = log_password_entry.get()
-    log_email = "subodh@gmail.com"
-    log_password = "asdfghjkl!2"
-    
-    email_pattern = re.compile(r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$')
-    if not email_pattern.match(log_email):
-        messagebox.showerror("Error", "Invalid Email")
-        print("Log in failed invalid email")
-        return
-    
-    log_password =log_password.encode()
-    log_password = hashlib.sha256(log_password).hexdigest()
-    
-    print(log_email)
-    print(log_password)
-    
-    mydb = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="",
-    database="securefile"
-    )
-    cursor = mydb.cursor()
-    query = "SELECT email_address, password, id FROM userdata WHERE email_address=%s and password=%s"
-    cursor.execute(query, (log_email, log_password))
-    result = cursor.fetchone()
-    if result:
-        current_user_id = result[2]
-        return 
-    else:
-        messagebox.showerror("Error", "Invalid Credentials")
-        return False
 
 
 # --------------------------------------- Switching to (sign_up_frame) --------------------------------------- #
@@ -165,6 +241,15 @@ def show_log_in():
         root.columnconfigure(i, minsize=50)
         
         
+        
+def verify_email():
+    sign_up_frame.grid_forget()
+    verify_email_frame.grid(row=0, column=0, rowspan=12, columnspan=12, sticky="nsew")
+    for i in range(12):
+        root.rowconfigure(i, minsize=50)
+    for i in range(12):
+        root.columnconfigure(i, minsize=50)
+        
 # --------------------------------------- Switching Back to (main_frame) --------------------------------------- #
 """
         This code defines a function back_to_main that switches the displayed frame 
@@ -178,12 +263,9 @@ def back_to_main():
     for i in range(12):
         root.rowconfigure(i, minsize=50)
     for i in range(12):
-        root.columnconfigure(i, minsize=50) 
-# --------------------------------------- Switching to (home_page_frame) --------------------------------------- #
-"""
-        This code defines a function show_log_in that switches the displayed frame 
-    from main_frame to log_in_frame.
-    """        
+        root.columnconfigure(i, minsize=50)
+              
+
 def display_user_data(user_id):
     # Connect to the database
     mydb = mysql.connector.connect(
@@ -226,6 +308,24 @@ def display_user_data(user_id):
         phone_number_value.grid(row=3, column=1, padx=10, pady=10)
     else:
         messagebox.showerror("Error", "User not found")
+
+
+
+        
+        
+        
+        
+        
+ 
+        
+        
+def log_in_after_verification():
+    verify_email_frame.grid_forget()
+    log_in_frame.grid(row=0, column=0, rowspan=12, columnspan=12, sticky="nsew")
+    for i in range(12):
+        root.rowconfigure(i, minsize=50)
+    for i in range(12):
+        root.columnconfigure(i, minsize=50)
         
 # --------------------------------------- Creating The Main Window --------------------------------------- #
 """
@@ -542,14 +642,6 @@ show_password_checkbox_log_in = tk.Checkbutton(log_in_frame, text="Show Password
 show_password_checkbox_log_in.grid(row=4, column=2, padx=10, pady=10, sticky="W")
 
 
-# --------------------------------------- Log In Button (log_in_frame) --------------------------------------- #
-'''log in frame ----  loin button '''
-log_in_button = tk.Button(log_in_frame, text="Log In", command=validate_log_in_credentials, font=("Helvetica", 12), 
-                          background="#065a60", foreground="white", relief="raised", bd=3, 
-                          activebackground="#144552", activeforeground="#c5c3c6")
-log_in_button.grid(row=5, column=2, padx=10,pady=50)
-log_in_button.config(width=8)
-
 # --------------------------------------- Back Button (log_in_frame) --------------------------------------- #
 '''sign up frame ---- back button '''
 back_button = tk.Button(log_in_frame, text="Back", command=back_to_main, font=("Helvetica", 12), 
@@ -557,4 +649,67 @@ back_button = tk.Button(log_in_frame, text="Back", command=back_to_main, font=("
                         activebackground="#144552",activeforeground="red")
 back_button.grid(row=6, column=1, sticky="w",padx=10,pady=150)
 back_button.config(width=8)
+
+def show_sign_up_back():
+    verify_email_frame.grid_forget()
+    sign_up_frame.grid(row=0, column=0, rowspan=12, columnspan=12, sticky="nsew")
+    for i in range(12):
+        root.rowconfigure(i, minsize=50)
+    for i in range(12):
+        root.columnconfigure(i, minsize=50)
+# ---------------------------------------  Creating (log_in_frame) --------------------------------------- #
+"""
+        This code creates a Tkinter frame widget, with a background color of "#006466".
+    """
+    
+verify_email_frame = tk.Frame(root, bg="#006466")
+
+# --------------------------------------- log_in text (log_in_frame) --------------------------------------- #
+"""
+               This code creates a Label widget with the text "Log In" 
+    in the log_in_frame. 
+    """
+    
+log_in_text = ttk.Label(verify_email_frame, text="Verify Email", font=("Travelast", 25), 
+                        foreground="white", background="#006466")
+log_in_text.grid(row=0, column=2, columnspan=1, pady=30, padx=50)
+
+
+# --------------------------------------- Footer Lable (main_frame) --------------------------------------- #
+"""
+       This code creates a Label widget with the text "Subodh Ghimire" 
+    in the main_frame but at buttom. 
+    """
+
+work_text = ttk.Label(verify_email_frame, text="We have sent 6 digit code in your email.Please kindly verify your Email.", 
+                      font=("Helvetica",10), foreground="white", background="#006466")
+work_text.grid(row=1, column=2, columnspan=1, pady=(10,20), sticky=("e"))
+
+
+# --------------------------------------- Email (log_in_frame) --------------------------------------- #
+"""
+        This code creates two Tkinter widgets, a label with text "Email:" and an Entry widget, 
+    both inside the 'log_in_frame'. 
+    """
+verify_code_entry = ttk.Entry(verify_email_frame, width=10, font=("Helvetica", 25), 
+                            foreground="#006466", style="Round.TEntry",justify='center')
+verify_code_entry.grid(row=3, column=2, padx=10, pady=10)
+
+# --------------------------------------- Verify Button (verify_email_frame) --------------------------------------- #
+'''log in frame ----  loin button '''
+verify_email_button = tk.Button(verify_email_frame, text="Verify", command=lambda: verify_code_function(submit_sign_up()), font=("Helvetica", 12), 
+                          background="#065a60", foreground="white", relief="raised", bd=3, 
+                          activebackground="#144552", activeforeground="#c5c3c6")
+verify_email_button.grid(row=5, column=2, padx=10,pady=50)
+verify_email_button.config(width=8)
+
+
+# --------------------------------------- Back Button (log_in_frame) --------------------------------------- #
+'''sign up frame ---- back button '''
+back_button = tk.Button(verify_email_frame, text="Back", command=show_sign_up_back, font=("Helvetica", 12), 
+                        background="#065a60", foreground="white", relief="raised", bd=3, 
+                        activebackground="#144552",activeforeground="red")
+back_button.grid(row=6, column=1, sticky="w",padx=10,pady=150)
+back_button.config(width=6)
+
 root.mainloop()
