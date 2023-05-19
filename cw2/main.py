@@ -34,15 +34,6 @@ def submit_sign_up():
     email = email_entry.get()
     password = password_entry.get()
     confirm_password= confirm_password_entry.get()
-
-# --------------------------------------- testing inputs (sign_up_frame) --------------------------------------- #
-
-    # first_name = "Bipwaspi"
-    # last_name = "Poudel"
-    # phone_number = "6666666666"
-    # email = "bipwaspi.poudel@gmail.com"
-    # password = "hacker@1"
-    # confirm_password= "hacker@1"
     
 # --------------------------------------- Checking Email Pattern (sign_up_frame) --------------------------------------- #
 
